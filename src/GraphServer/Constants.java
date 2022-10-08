@@ -59,7 +59,7 @@ public class Constants
 	public static final int FST_ODE = 1;
 	public static final int SND_ODE = 2;
 	
-	public static final int PLANE_LENGTH = 770;
+	public static final int PLANE_LENGTH = 750;
 	public static final int PLANE_HEIGHT = 450;
 	public static final int PLANE_GAME_LENGTH = 50;
 	
