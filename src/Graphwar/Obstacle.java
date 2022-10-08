@@ -16,10 +16,7 @@
 //  along with Graphwar.  If not, see <http://www.gnu.org/licenses/>.
 
 package Graphwar;
-import java.awt.Color;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.image.BufferedImage;
 import java.util.Random;
 import GraphServer.Constants;
@@ -32,19 +29,19 @@ public class Obstacle
 	int expX;
 	int expY;
 	int expRadius;
-	
+
+	final int emptyPixel = 0;
+
 	Obstacle(int numCircles, int circleInfo[])
 	{
-		terrain = new BufferedImage(Constants.PLANE_LENGTH, Constants.PLANE_HEIGHT, BufferedImage.TYPE_3BYTE_BGR);
-		
-		terrainGraphics = (Graphics2D)terrain.getGraphics();
-		terrainGraphics.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+		terrain = new BufferedImage(Constants.PLANE_LENGTH, Constants.PLANE_HEIGHT, BufferedImage.TYPE_4BYTE_ABGR);
 
-		
-		terrainGraphics.setColor(Color.WHITE);
-		terrainGraphics.fillRect(0, 0, terrain.getWidth(), terrain.getHeight());
-		
-		terrainGraphics.setColor(Color.BLACK);
+		terrainGraphics = terrain.createGraphics();
+
+		Graphics2D g = (Graphics2D) terrainGraphics.create();
+		g.setRenderingHint(RenderingHints.KEY_ANTIALIASING,RenderingHints.VALUE_ANTIALIAS_ON);
+
+		g.setColor(Color.DARK_GRAY);
 		
 		for(int i=0; i<numCircles; i++)
 		{			
@@ -52,13 +49,10 @@ public class Obstacle
 			int y = circleInfo[3*i+1];
 			int radius = circleInfo[3*i+2];
 			
-			terrainGraphics.fillOval(x-radius, y-radius, 2*radius, 2*radius);
+			g.fillOval(x-radius, y-radius, 2*radius, 2*radius);
 		}
-		
-		//transparent = new Color(0,0,0,0);
-		//terrainGraphics.setComposite(AlphaComposite.Src);
-		//terrainGraphics.setColor(transparent);
-		terrainGraphics.setColor(Color.WHITE);
+
+		g.dispose();
 		
 		expX = 0;
 		expY = 0;
@@ -102,7 +96,7 @@ public class Obstacle
 		if(y<0 || y>=Constants.PLANE_HEIGHT)
 			return true;
 		
-		if(terrain.getRGB(x, y) != -1)
+		if(terrain.getRGB(x, y) != emptyPixel)
 			return true;
 		
 		return false;
@@ -117,6 +111,8 @@ public class Obstacle
 	
 	public void explodePoint()
 	{
+		terrainGraphics.setComposite(AlphaComposite.getInstance(AlphaComposite.CLEAR));
+		terrainGraphics.setColor(new Color(0,0,0,0));
 		terrainGraphics.fillOval(expX-expRadius, expY-expRadius, expRadius*2, expRadius*2);
 	}
 	
@@ -138,23 +134,13 @@ public class Obstacle
 		{
 			return true;
 		}
-		
-		if( terrain.getRGB(x, y) == -1)
-		{	
-			if(terrain.getRGB(x+radius, y) == -1)
-			{
-				if(terrain.getRGB(x-radius, y) == -1)
-				{
-					if(terrain.getRGB(x, y+radius) == -1)
-					{
-						if(terrain.getRGB(x, y-radius) == -1)
-						{
-							return false;
-						}
-					}
-				}
-			}
-			
+
+		if (terrain.getRGB(x, y) == emptyPixel
+				&& terrain.getRGB(x + radius, y) == emptyPixel
+				&& terrain.getRGB(x - radius, y) == emptyPixel
+				&& terrain.getRGB(x, y + radius) == emptyPixel
+				&& terrain.getRGB(x, y - radius) == emptyPixel) {
+			return false;
 		}
 		
 		return true;

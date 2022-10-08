@@ -17,13 +17,7 @@
 
 package Graphwar;
 
-import java.awt.AlphaComposite;
-import java.awt.Color;
-import java.awt.Graphics;
-import java.awt.Graphics2D;
-import java.awt.Image;
-import java.awt.MediaTracker;
-import java.awt.RenderingHints;
+import java.awt.*;
 import java.awt.event.ActionEvent;
 import java.awt.event.ActionListener;
 import java.awt.geom.GeneralPath;
@@ -69,10 +63,7 @@ public class GraphPlane extends JPanel implements ActionListener
 	private BufferedImage functionImage;
 	private Graphics2D functionGraphics;
 	private int lastStepDrawn;
-	
-	private BufferedImage background;
-	private Graphics2D backg;
-	
+
 	private boolean animating;
 	
 	private boolean repaintBack;
@@ -104,10 +95,6 @@ public class GraphPlane extends JPanel implements ActionListener
 		lastStepDrawn = 0;
 		repaintBack = true;
 		nextMarker = false;
-		
-		background = new BufferedImage(Constants.PLANE_LENGTH, Constants.PLANE_HEIGHT, BufferedImage.TYPE_3BYTE_BGR);
-		backg = background.createGraphics();
-		backg.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		
 		timer = new Timer(30, this);
 		timer.setInitialDelay(30); 
@@ -223,48 +210,44 @@ public class GraphPlane extends JPanel implements ActionListener
 		repaintBack = true;
 	}
 	
-	public void paintComponent(Graphics g)
+	public void paintComponent(Graphics g2d)
 	{		
 		//long times[] = new long[6];
 		
 		//times[0] = System.nanoTime();
-				
+
+		Graphics2D g = (Graphics2D) g2d.create();
+
 		boolean reversed = graphwar.getGameData().isTerrainReversed();
 		
-		if(repaintBack)
+		drawClearWhiteBackground(g);
+		drawBackgroundGrid(g);
+		drawBackground(g, reversed);	//times[1] = System.nanoTime();
+		drawPlayersNames(g, reversed);	///times[2] = System.nanoTime();
+		drawCurrentPlayerMarker(g, reversed);
+
+		if(nextMarker)
 		{
-			drawBackground(backg, reversed);	//times[1] = System.nanoTime();
-			drawPlayersNames(backg, reversed);	///times[2] = System.nanoTime();	
-			drawCurrentPlayerMarker(backg, reversed);
-			
-			if(nextMarker)
-			{
-				drawNextPlayersMarkers(backg, reversed);
-			}
-			
-			repaintBack = false;
+			drawNextPlayersMarkers(g, reversed);
 		}
-		
-		g.drawImage(background, 0, 0, null);
-	//	else
-	//	{
-	//		times[1] = System.nanoTime();
-	//		times[2] = System.nanoTime();
-	//	}
+
+		repaintBack = false;
+
 		
 		drawSoldiers(g, reversed);	//	times[3] = System.nanoTime();
 		drawFunction(g, reversed);	//	times[4] = System.nanoTime();
 		drawExplosion(g, reversed);	//	times[5] = System.nanoTime();
-				
-	//	for(int i=1; i<times.length; i++)
-	//	{
-	//		System.out.println(i+": "+(times[i]-times[i-1]));
-	//	}
-	
-	//	System.out.println();
-	//	timeFinishedLastPaint = System.currentTimeMillis();
+
+
+		g.dispose();
 	}
-		
+
+	private void drawClearWhiteBackground(Graphics2D g) {
+		g.setColor(Color.WHITE);
+
+		g.fillRect(0, 0, Constants.PLANE_LENGTH, Constants.PLANE_HEIGHT);
+	}
+
 	private void drawBackground(Graphics2D g, boolean reversed)
 	{
 		if(reversed)
@@ -280,6 +263,51 @@ public class GraphPlane extends JPanel implements ActionListener
 		
 		g.drawLine(0, Constants.PLANE_HEIGHT/2, Constants.PLANE_LENGTH, Constants.PLANE_HEIGHT/2);
 		g.drawLine(Constants.PLANE_LENGTH/2, 0, Constants.PLANE_LENGTH/2, Constants.PLANE_HEIGHT);
+	}
+
+	private void drawBackgroundGrid(Graphics2D g2d) {
+
+		Graphics2D g = (Graphics2D) g2d.create();
+
+
+
+		Stroke s = new BasicStroke(1,BasicStroke.CAP_BUTT,BasicStroke.JOIN_BEVEL,0, new float[]{3},0);
+		g.setStroke(s);
+
+		for (int x = 1; x < Constants.PLANE_GAME_LENGTH; x++) {
+			if (x == Constants.PLANE_GAME_LENGTH / 2)
+				continue;
+
+			if (x % 5 == 0) {
+				g.setColor(new Color(0xAAAAAA));
+			}
+			else {
+				g.setColor(new Color(0xDDDDDD));
+			}
+
+			g.drawLine(getCoordinate(x), 0, getCoordinate(x), Constants.PLANE_HEIGHT);
+		}
+
+		for (int y = 1; y < Constants.PLANE_GAME_LENGTH; y++) {
+			if (y == 30 / 2)
+				continue;
+
+			if (y % 5 == 0) {
+				g.setColor(new Color(0xAAAAAA));
+			}
+			else {
+				g.setColor(new Color(0xDDDDDD));
+			}
+
+			g.drawLine(0, getCoordinate(y), Constants.PLANE_LENGTH, getCoordinate(y));
+		}
+
+		g.dispose();
+
+	}
+
+	private int getCoordinate(int step) {
+		return (step * 15);
 	}
 	
 	public void startDrawingFunction()
@@ -306,7 +334,7 @@ public class GraphPlane extends JPanel implements ActionListener
 					
 		GeneralPath path = new GeneralPath();
 		
-		Graphics2D g2d = (Graphics2D)g;
+		Graphics2D g2d = (Graphics2D)g.create();
 		g2d.setRenderingHint(RenderingHints.KEY_ANTIALIASING, RenderingHints.VALUE_ANTIALIAS_ON);
 		
 		Color playerColor = graphwar.getGameData().getCurrentTurnPlayer().getColor();
@@ -356,7 +384,7 @@ public class GraphPlane extends JPanel implements ActionListener
 			boolean funcReversed = graphwar.getGameData().isFunctionReversed();
 			drawFunctionImage(functionGraphics, (funcReversed || terrainReversed) && !(funcReversed && terrainReversed));
 			
-			Graphics2D g2d = (Graphics2D)g;
+			Graphics2D g2d = (Graphics2D)g.create();
 			
 			if(graphwar.getGameData().isExploding())
 			{
@@ -631,12 +659,12 @@ public class GraphPlane extends JPanel implements ActionListener
 						int width = drawImage.getWidth(null);
 						int height = drawImage.getHeight(null);
 						
-						g.drawImage(	background, 
-										x-width/2, y-height/2,
-										x+width/2, y+height/2, 
-										x-width/2, y-height/2,
-										x+width/2, y+height/2, 	
-										null);
+//						g.drawImage(	background,
+//										x-width/2, y-height/2,
+//										x+width/2, y+height/2,
+//										x-width/2, y-height/2,
+//										x+width/2, y+height/2,
+//										null);
 						
 						if((player.getTeam() == Constants.TEAM2 || reversed) && !(player.getTeam() == Constants.TEAM2 && reversed))
 						{							
